@@ -1,0 +1,11 @@
+/* размеры одного кадра: 768 px / 4 = 192 px  */
+#candle{
+    width:192px;
+    height:192px;
+    background-image:url("candle_sprite.png");
+    background-size:400% 400%;   /* 4 столбца × 4 строки */
+    cursor:pointer;
+  }
+  
+  /* класс .burn задаём только визуально: саму анимацию делаем JavaScript’ом */
+  
