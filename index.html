@@ -1,0 +1,3239 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  
+
+  <title>Интерактивное облако</title>
+  <style>
+
+.coon {
+  opacity: 0;
+  transition: opacity 0.8s ease;
+}
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    html, body {
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      font-family: 'LapsusPro-Bold', sans-serif;
+    }
+
+    @font-face {
+      font-family: 'LapsusPro-Bold';
+      src: url('LapsusPro-Bold.otf') format('opentype');
+    }
+
+    .wrapper {
+      position: relative;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+    }
+
+    .slide-two {
+      position: absolute;
+      width: 100%;
+      height: 100%;
+      background: url('slide_two.png') no-repeat center bottom;
+      background-size: cover;
+      transform: translateY(70%);
+      transition: transform 0.5s ease;
+    }
+
+    .pull-hint {
+      position: absolute;
+      top: 83%;
+      left: 29%;
+      transform: translate(-50%, -50%);
+      width: 150px;
+      height: auto;
+      z-index: 5;
+      pointer-events: none;
+    }
+
+    .slot-numbers {
+      position: absolute;
+      left: 50%;
+      bottom: 26%;
+      transform: translateX(-50%);
+      display: flex;
+      gap: 4px;
+    }
+
+    .slot-cell {
+      position: relative;
+      width: 80px;
+      height: 80px;
+      background: none !important; /* Убираем фон, если был */
+      overflow: hidden;
+    }
+
+    /* Маска (обрезает всё, кроме зоны слотов) */
+.slot-mask {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  -webkit-mask-image: url('slot-mask.png');
+  mask-image: url('slot-mask.png');
+  -webkit-mask-size: cover;
+  mask-size: cover;
+  z-index: 2; /* Выше барабана, но НЕ перекрывает input */
+  pointer-events: none; /* Чтобы клики проходили сквозь маску */
+}
+
+    .slot-input {
+      position: absolute;
+      width: 100%;
+      height: 100%;
+      text-align: center;
+      font-size: 28px;
+      border: none;
+      background: transparent;
+      color: black;
+      font-weight: bold;
+      z-index: 3;
+      background: transparent; /* Прозрачный фон */
+    }
+
+    .slot-input:focus {
+  outline: none;
+  box-shadow: none;
+}
+
+    .slot-input::placeholder {
+      color: #ccc;
+    }
+
+    .emoji-reel {
+      position: absolute;
+      width: 100%;
+      top: 0;
+      left: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      transition: transform 0.5s ease;
+      z-index: 1;
+    }
+
+    .emoji-img {
+      width: 40px;
+      height: 40px;
+      object-fit: contain;
+      margin: 2px 0;
+      flex-shrink: 0;
+    }
+
+    /* Специальные стили только для торта */
+.cake-img {
+  position: relative;
+  top: 11px; /* Сдвигаем вниз на 10px */
+  left: 0px;  /* Сдвигаем вправо на 5px */
+  transform: scale(1); /* Увеличиваем, если нужно */
+}
+
+    .lever {
+      position: absolute;
+      right: 16%;
+      bottom: 30%;
+      width: 40px;
+      height: 80px;
+      background: url('r_one.png') no-repeat center center;
+      background-size: contain;
+      z-index: 10; /* Должен быть выше слота */
+    }
+
+    .lever.pulled {
+      background-image: url('r_two.png');
+    }
+
+    .next-button {
+      position: absolute;
+      bottom: 10%;
+      left: 50%;
+      transform: translateX(-50%);
+      padding: 0.6em 1em; /* уменьшено */
+      font-size: 14px;    /* сделай текст меньше */
+      background: #fff;
+      border: none;
+      border-radius: 20px;
+      font-family: 'LapsusPro-Bold', sans-serif;
+      font-weight: bold;
+      color: #000;
+      display: none;
+      align-items: center;
+      gap: 0.6em;
+      cursor: pointer;
+      opacity: 0;
+      transition: opacity 0.5s ease;
+      z-index: 10;
+    }
+
+    .next-button.show {
+      display: flex;
+      opacity: 1;
+    }
+
+    .next-button .arrow-wrapper {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+
+    .next-button .arrow {
+      margin-top: 1px;
+      width: 10px;
+      height: 2px;
+      background: #000;
+      position: relative;
+      transition: 0.2s;
+    }
+
+    .next-button .arrow::before {
+      content: "";
+      position: absolute;
+      top: -3px;
+      right: 3px;
+      border: solid #000;
+      border-width: 0 2px 2px 0;
+      display: inline-block;
+      padding: 3px;
+      transform: rotate(-45deg);
+    }
+
+    .next-button:hover {
+      background-color: #111;
+      color: #fff;
+    }
+
+    .next-button:hover .arrow {
+      background: #fff;
+    }
+    
+
+    .next-button:hover .arrow::before {
+      border-color: #fff;
+      right: 0;
+    }
+
+    /* Вторая страница */
+    .second-page {
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.5s ease;
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: white;
+      z-index: 20;
+    }
+
+    .second-page.visible {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    .loader-bar {
+      position: absolute;
+      top: 40%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: 60%;
+    }
+
+    #hedgehog {
+      position: absolute;
+      top: 47%;
+      left: 105%; /* ← начальная позиция */
+      width: 69px; /* ← регулируй размер */
+      height: auto;
+    }
+    #pawContainer {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 21;
+}
+
+.paw {
+  position: absolute;
+  width: 65px;
+  height: 65px;
+  background: url('след@4x.png') center/contain no-repeat;
+  opacity: 1;
+  animation: fadeOut 2.3s forwards;
+}
+
+#pawContainer2 {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 22;
+}
+
+.paw2 {
+  position: absolute;
+  width: 100px;
+  height: 135px;
+  background: url('след@4x.png') center/contain no-repeat;
+  transform: scaleX(-1); /* отзеркаливание */
+  opacity: 1;
+  animation: fadeOut 2.3s forwards;
+}
+
+@keyframes fadeOut {
+  to {
+    opacity: 0;
+    transform: scale(1.1);
+  }
+}
+#hbtyImage {
+  position: absolute;
+  top: -100%;
+  left: 50%;
+  transform: translateX(-50%);
+  width: auto;
+  height: 100%;
+  max-height: 85vh;
+  object-fit: contain;
+  opacity: 0;
+  transition: top 1s ease, opacity 1s ease;
+  z-index: 10;
+}
+
+#hbtyImage.show {
+  top: 0;
+  opacity: 1;
+}
+
+
+
+/* 💬 добавь вот это ↓↓↓ */
+#birthdayTitle,
+#birthdaySubtitle {
+  position: relative;
+  z-index: 20;
+}
+
+
+.uiverse .wrapper {
+  -webkit-mask-image: -webkit-radial-gradient(white, black);
+  overflow: hidden;
+  border-radius: 24px;
+  min-width: 132px;
+  padding: 12px 0;
+}
+
+.uiverse .wrapper span {
+  display: inline-block;
+  position: relative;
+  z-index: 1;
+}
+
+.uiverse:hover {
+  --duration: 1400ms;
+}
+
+.uiverse .wrapper .circle {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  filter: blur(var(--blur, 8px));
+  background: var(--background, transparent);
+  transform: translate(var(--x, 0), var(--y, 0)) translateZ(0);
+  animation: var(--animation, none) var(--duration) var(--easing) infinite;
+}
+
+.uiverse .wrapper .circle.circle-1,
+.uiverse .wrapper .circle.circle-9,
+.uiverse .wrapper .circle.circle-10 {
+  --background: var(--c-color-4);
+}
+
+.uiverse .wrapper .circle.circle-3,
+.uiverse .wrapper .circle.circle-4 {
+  --background: var(--c-color-2);
+  --blur: 14px;
+}
+
+.uiverse .wrapper .circle.circle-5,
+.uiverse .wrapper .circle.circle-6 {
+  --background: var(--c-color-3);
+  --blur: 16px;
+}
+
+.uiverse .wrapper .circle.circle-2,
+.uiverse .wrapper .circle.circle-7,
+.uiverse .wrapper .circle.circle-8,
+.uiverse .wrapper .circle.circle-11,
+.uiverse .wrapper .circle.circle-12 {
+  --background: var(--c-color-1);
+  --blur: 12px;
+}
+
+.uiverse .wrapper .circle.circle-1 {
+  --x: 0;
+  --y: -40px;
+  --animation: circle-1;
+}
+
+.uiverse .wrapper .circle.circle-2 {
+  --x: 92px;
+  --y: 8px;
+  --animation: circle-2;
+}
+
+.uiverse .wrapper .circle.circle-3 {
+  --x: -12px;
+  --y: -12px;
+  --animation: circle-3;
+}
+
+.uiverse .wrapper .circle.circle-4 {
+  --x: 80px;
+  --y: -12px;
+  --animation: circle-4;
+}
+
+.uiverse .wrapper .circle.circle-5 {
+  --x: 12px;
+  --y: -4px;
+  --animation: circle-5;
+}
+
+.uiverse .wrapper .circle.circle-6 {
+  --x: 56px;
+  --y: 16px;
+  --animation: circle-6;
+}
+
+.uiverse .wrapper .circle.circle-7 {
+  --x: 8px;
+  --y: 28px;
+  --animation: circle-7;
+}
+
+.uiverse .wrapper .circle.circle-8 {
+  --x: 28px;
+  --y: -4px;
+  --animation: circle-8;
+}
+
+.uiverse .wrapper .circle.circle-9 {
+  --x: 20px;
+  --y: -12px;
+  --animation: circle-9;
+}
+
+.uiverse .wrapper .circle.circle-10 {
+  --x: 64px;
+  --y: 16px;
+  --animation: circle-10;
+}
+
+.uiverse .wrapper .circle.circle-11 {
+  --x: 4px;
+  --y: 4px;
+  --animation: circle-11;
+}
+
+.uiverse .wrapper .circle.circle-12 {
+  --blur: 14px;
+  --x: 52px;
+  --y: 4px;
+  --animation: circle-12;
+}
+
+@keyframes circle-1 {
+  33% {
+    transform: translate(0px, 16px) translateZ(0);
+  }
+
+  66% {
+    transform: translate(12px, 64px) translateZ(0);
+  }
+}
+
+@keyframes circle-2 {
+  33% {
+    transform: translate(80px, -10px) translateZ(0);
+  }
+
+  66% {
+    transform: translate(72px, -48px) translateZ(0);
+  }
+}
+
+@keyframes circle-3 {
+  33% {
+    transform: translate(20px, 12px) translateZ(0);
+  }
+
+  66% {
+    transform: translate(12px, 4px) translateZ(0);
+  }
+}
+
+@keyframes circle-4 {
+  33% {
+    transform: translate(76px, -12px) translateZ(0);
+  }
+
+  66% {
+    transform: translate(112px, -8px) translateZ(0);
+  }
+}
+
+@keyframes circle-5 {
+  33% {
+    transform: translate(84px, 28px) translateZ(0);
+  }
+
+  66% {
+    transform: translate(40px, -32px) translateZ(0);
+  }
+}
+
+@keyframes circle-6 {
+  33% {
+    transform: translate(28px, -16px) translateZ(0);
+  }
+
+  66% {
+    transform: translate(76px, -56px) translateZ(0);
+  }
+}
+
+@keyframes circle-7 {
+  33% {
+    transform: translate(8px, 28px) translateZ(0);
+  }
+
+  66% {
+    transform: translate(20px, -60px) translateZ(0);
+  }
+}
+
+@keyframes circle-8 {
+  33% {
+    transform: translate(32px, -4px) translateZ(0);
+  }
+
+  66% {
+    transform: translate(56px, -20px) translateZ(0);
+  }
+}
+
+@keyframes circle-9 {
+  33% {
+    transform: translate(20px, -12px) translateZ(0);
+  }
+
+  66% {
+    transform: translate(80px, -8px) translateZ(0);
+  }
+}
+
+@keyframes circle-10 {
+  33% {
+    transform: translate(68px, 20px) translateZ(0);
+  }
+
+  66% {
+    transform: translate(100px, 28px) translateZ(0);
+  }
+}
+
+@keyframes circle-11 {
+  33% {
+    transform: translate(4px, 4px) translateZ(0);
+  }
+
+  66% {
+    transform: translate(68px, 20px) translateZ(0);
+  }
+}
+
+@keyframes circle-12 {
+  33% {
+    transform: translate(56px, 0px) translateZ(0);
+  }
+
+  66% {
+    transform: translate(60px, -32px) translateZ(0);
+  }
+}
+
+#blowBtn {
+  display: none;
+  margin: 40px auto 0 auto;
+  z-index: 999 !important;
+  position: relative;
+  opacity: 1;
+  transition: opacity 0.8s ease;
+}
+
+#blowBtn.hide {
+  opacity: 0;
+}
+
+#candle, #flame {
+  display: none;
+  position: absolute;
+  bottom: 50px; /* меняй высоту свечи */
+  left: 50%;
+  transform: translateX(-50%);
+  opacity: 0;
+  transition: opacity 1s ease;
+  z-index: 999;
+}
+
+#candle {
+  width: 55px; /* меняй размер */
+}
+
+#flame {
+  width: 25px;
+  bottom: 85px; /* регулируй относительно свечи */
+}
+
+  .slide-out-blurred-bottom {
+    -webkit-animation: slide-out-blurred-bottom 1.2s cubic-bezier(0.755, 0.050, 0.855, 0.060) both;
+    animation: slide-out-blurred-bottom 1.2s cubic-bezier(0.45, 0.05, 0.55, 0.95) both;
+  }
+
+  @-webkit-keyframes slide-out-blurred-bottom {
+    0% {
+      -webkit-transform: translateY(0) scaleY(1) scaleX(1);
+              transform: translateY(0) scaleY(1) scaleX(1);
+      -webkit-transform-origin: 50% 50%;
+              transform-origin: 50% 50%;
+      -webkit-filter: blur(0);
+              filter: blur(0);
+      opacity: 1;
+    }
+    100% {
+      -webkit-transform: translateY(1000px) scaleY(2) scaleX(0.2);
+              transform: translateY(1000px) scaleY(2) scaleX(0.2);
+      -webkit-transform-origin: 50% 100%;
+              transform-origin: 50% 100%;
+      -webkit-filter: blur(40px);
+              filter: blur(40px);
+      opacity: 0;
+    }
+  }
+
+  @keyframes slide-out-blurred-bottom {
+    0% {
+      -webkit-transform: translateY(0) scaleY(1) scaleX(1);
+              transform: translateY(0) scaleY(1) scaleX(1);
+      -webkit-transform-origin: 50% 50%;
+              transform-origin: 50% 50%;
+      -webkit-filter: blur(0);
+              filter: blur(0);
+      opacity: 1;
+    }
+    100% {
+      -webkit-transform: translateY(1000px) scaleY(2) scaleX(0.2);
+              transform: translateY(1000px) scaleY(2) scaleX(0.2);
+      -webkit-transform-origin: 50% 100%;
+              transform-origin: 50% 100%;
+      -webkit-filter: blur(40px);
+              filter: blur(40px);
+      opacity: 0;
+    }
+  }
+
+  @keyframes fade-out-on-place {
+  0% {
+    opacity: 1;
+    transform: translateX(-50%) scale(1);
+    filter: blur(0);
+  }
+  100% {
+    opacity: 0;
+    transform: translateX(-50%) scale(1.3);
+    filter: blur(12px);
+  }
+}
+
+.fade-out-on-place {
+  animation: fade-out-on-place 0.7s ease-out forwards;
+}
+
+/* ───── надпись «И куда он бежит?» ───── */
+.question-text{
+  position:absolute;
+  /*  ↓ меняй как хочешь ↓  */
+  bottom:22%;          /* Y-позиция: % от высоты экрана */
+  left:50%;            /* X-центр */
+  transform:translateX(-50%);
+  font:700 22px/1 'LapsusPro-Bold',sans-serif; /* размер/шрифт */
+  color:#000;          /* цвет текста */
+  opacity:0;           /* изначально скрыт */
+  pointer-events:none; /* чтобы не перехватывал клики */
+}
+
+/* анимация появления-затухания */
+@keyframes fadeInOutQuestion{
+  0%   {opacity:0; transform:translate(-50%,10px);}
+  15%  {opacity:1; transform:translate(-50%,0);}
+  70%  {opacity:1;}
+  100% {opacity:0; transform:translate(-50%,-10px);}
+}
+
+/* когда страница-загрузка видима → запускаем анимацию */
+.second-page.visible .question-text{
+  animation:fadeInOutQuestion 3.2s ease-out forwards; /* длительность легко менять */
+  animation-delay: 0.7s;
+}
+
+/* ─── кнопка «далее..» ─── */
+/* From Uiverse.io by kheshore */ 
+.btn-conteiner {
+  display: flex;
+  justify-content: center;
+  --color-text: #9ee5fa;
+  --color-background: #353535;
+  --color-outline: #9ee5fa80;
+  --color-shadow: #00000080;
+}
+
+.btn-content {
+  display: flex;
+  align-items: center;
+  padding: 0px 3px;
+  text-decoration: none;
+  font-family: "Poppins", sans-serif;
+  font-size: 25px;
+  color: var(--color-text);
+  background: var(--color-background);
+  transition: 1s;
+  border-radius: 100px;
+  box-shadow: 0 0 0.2em 0 var(--color-background);
+}
+
+.btn-content:hover,
+.btn-content:focus {
+  transition: 0.5s;
+  -webkit-animation: btn-content 1s;
+  animation: btn-content 1s;
+  outline: 0.1em solid transparent;
+  outline-offset: 0.2em;
+  box-shadow: 0 0 0.4em 0 var(--color-background);
+}
+
+.btn-content .icon-arrow {
+  transition: 0.5s;
+  margin-right: 0px;
+  transform: scale(0.6);
+}
+
+.btn-content:hover .icon-arrow {
+  transition: 0.5s;
+  margin-right: 25px;
+}
+
+.icon-arrow {
+  width: 20px;
+  margin-left: 15px;
+  position: relative;
+  top: 6%;
+}
+
+/* SVG */
+#arrow-icon-one {
+  transition: 0.4s;
+  transform: translateX(-60%);
+}
+
+#arrow-icon-two {
+  transition: 0.5s;
+  transform: translateX(-30%);
+}
+
+.btn-content:hover #arrow-icon-three {
+  animation: color_anim 1s infinite 0.2s;
+}
+
+.btn-content:hover #arrow-icon-one {
+  transform: translateX(0%);
+  animation: color_anim 1s infinite 0.6s;
+}
+
+.btn-content:hover #arrow-icon-two {
+  transform: translateX(0%);
+  animation: color_anim 1s infinite 0.4s;
+}
+
+/* SVG animations */
+@keyframes color_anim {
+  0% {
+    fill: white;
+  }
+
+  50% {
+    fill: var(--color-background);
+  }
+
+  100% {
+    fill: #9ee5fa;
+  }
+}
+
+/* Button animations */
+@-webkit-keyframes btn-content {
+  0% {
+    outline: 0.2em solid var(--color-background);
+    outline-offset: 0;
+  }
+}
+
+@keyframes btn-content {
+  0% {
+    outline: 0.2em solid var(--color-background);
+    outline-offset: 0;
+  }
+}
+
+#next2Btn {
+  --primary-color: #f6b70b;
+  --secondary-color: #fff;
+  --hover-color: #111;
+  --arrow-width: 10px;
+  --arrow-stroke: 2px;
+  box-sizing: border-box;
+  border: 0;
+  border-radius: 35px;
+  color: var(--secondary-color);
+  padding: 1em 1.8em;
+  background: var(--primary-color);
+  display: flex;
+  transition: 0.2s background;
+  align-items: center;
+  gap: 0.6em;
+  font-weight: bold;
+  cursor: pointer;
+}
+
+#next2Btn .arrow-wrapper {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+#next2Btn .arrow {
+  margin-top: 1px;
+  width: var(--arrow-width);
+  background: var(--primary-color);
+  height: var(--arrow-stroke);
+  position: relative;
+  transition: 0.2s;
+}
+
+#next2Btn .arrow::before {
+  content: "";
+  box-sizing: border-box;
+  position: absolute;
+  border: solid var(--secondary-color);
+  border-width: 0 var(--arrow-stroke) var(--arrow-stroke) 0;
+  display: inline-block;
+  top: -3px;
+  right: 3px;
+  transition: 0.2s;
+  padding: 3px;
+  transform: rotate(-45deg);
+}
+
+#next2Btn:hover {
+  background-color: var(--hover-color);
+}
+
+#next2Btn:hover .arrow {
+  background: var(--secondary-color);
+}
+
+#next2Btn:hover .arrow:before {
+  right: 0;
+}
+
+
+/* ─── надпись «а это еще что??» ─── */
+.question2{position:absolute;bottom:22%;left:50%;transform:translateX(-50%);
+  font:700 22px/1 'LapsusPro-Bold',sans-serif;opacity:0;pointer-events:none;}
+
+@keyframes fadeInOutQ2{
+  0%{opacity:0;transform:translate(-50%,10px)}
+  15%{opacity:1;transform:translate(-50%,0)}
+  70%{opacity:1}
+  100%{opacity:0;transform:translate(-50%,-10px)}
+}
+.loading2.visible .question2{animation:fadeInOutQ2 3.8s ease-out forwards;
+  animation-delay: 1.2s;
+}
+
+.btn-conteiner.fixed-bottom-right {
+  position: absolute;
+  bottom: 20px;
+  right: 20px;
+  z-index: 1001;
+}
+
+/* зеркалим оба gif-ёжика */
+
+#hedgehog2 img:first-child {      /* у hedgehog2 сам gif – первый <img> */
+  transform: scaleX(-1);          /* отражаем по горизонтали  */
+}
+
+.fade-out {
+  opacity: 0;
+  transition: opacity 0.6s ease;
+  pointer-events: none;
+}
+
+/* страница 4 поверх всего */
+.page4 {
+  position: absolute; inset: 0;
+  background: #fff;
+  display: none;
+  opacity: 0;
+  transition: opacity 1.5s ease;
+  z-index: 50;
+}
+
+.page4-bg {
+  width: 100vw;
+  max-width: none;
+  height: auto;
+  display: block;
+}
+
+/* базовые стили енотов и облаков */
+.coon, .cloud {
+  position: absolute;
+  display: none;
+  opacity: 0;
+  transition: opacity 0.6s ease;
+  cursor: pointer;
+}
+
+.coon-1 { top:11.6%; left: 1%; width: 340px; }
+.cloud-1 { top: 47%; left: 42%; width: 95px; }
+
+.coon-2 { top: 0%; left: 6%; width: 370px; }
+.cloud-2 { top: 23%; left: 40%; width: 75px; }
+
+.coon-3 { top: -1%; left: 3%; width: 360px; }
+.cloud-3 { top: 22%; left: 35%; width: 80px; }
+
+@keyframes vanish {
+  to {
+    opacity: 0;
+    transform: scale(1.3);
+    filter: blur(12px);
+  }
+}
+
+.vanish {
+  animation: vanish 0.7s forwards;
+}
+
+img {
+  outline: none;
+  border: none;
+}
+
+img:focus {
+  outline: none;
+  border: none;
+}
+
+*:focus {
+  outline: none !important;
+}
+
+button:focus,
+a:focus,
+.cloud:focus,
+.coon:focus {
+  outline: none !important;
+  box-shadow: none !important;
+}
+
+img, .cloud, .coon {
+  -webkit-tap-highlight-color: transparent;
+  -webkit-touch-callout: none;
+} 
+
+img:focus,
+.cloud:focus,
+.coon:focus {
+  outline: none !important;
+  box-shadow: none !important;
+  border: none !important;
+}
+
+/* --- универсальные модификаторы ---------- */
+.flip-h {
+  transform: scaleX(-1) !important;
+}      /* зеркально по горизонтали  */
+.flip-v { transform: scaleY(-1); }      /* зеркально по вертикали    */
+.rotate90  { transform: rotate(90deg); }
+.rotate180 { transform: rotate(180deg); }
+.rotate270 { transform: rotate(270deg); }
+
+button:focus {
+  outline: none !important;
+  box-shadow: none !important;
+}
+
+button:focus-visible,
+.next-button:focus-visible,
+#next2Btn:focus-visible,
+.uiverse:focus-visible {
+  outline: none !important;
+  box-shadow: none !important;
+}
+
+button::-moz-focus-inner {
+  border: 0;
+}
+
+.next-button,
+#next2Btn {
+    outline: none !important;
+    border: none !important;
+    box-shadow: none !important;
+}
+
+.next-button:focus,
+.next-button:active,
+.next-button:hover,
+#next2Btn:focus,
+#next2Btn:active,
+#next2Btn:hover {
+    outline: none !important;
+    border: none !important;
+    box-shadow: none !important;
+}
+
+button {
+    -webkit-tap-highlight-color: transparent !important;
+    -webkit-focus-ring-color: transparent !important;
+    outline: none !important;
+}
+
+button:focus,
+button:active {
+    outline: none !important;
+    box-shadow: none !important;
+    border: none !important;
+}
+
+.page4.new-bg {
+  background: url('страница5.png') no-repeat center center;
+  background-size: cover;
+}
+
+#thoughtCloud {
+  position: absolute;
+  top: -7%;
+  left: 40%;
+  transform: translateX(-50%);
+  width: 120vw;
+  max-width: 1000px;
+  opacity: 0;
+  transition: opacity 1s ease;
+  display: none;
+  z-index: 60;
+}
+
+#thoughtText {
+  position: absolute;
+  top: 50px;
+  left: 50px;
+  transform: translateX(-50%);
+  width: 80vw;
+  max-width: 500px;
+  text-align: center;
+  font-family: 'LapsusPro-Bold', sans-serif;
+  font-size: 16px;
+  line-height: 1;
+  color: #303030;
+  opacity: 0;
+  transition: opacity 1s ease;
+  display: none;
+  z-index: 61;
+}
+
+#thoughtText .big {
+  color: #303030;
+  font-size: 16px;
+}
+
+#sameBtn {
+  padding: 15px 31px;
+  border: unset;
+  border-radius: 25px;
+  color: #212121;
+  z-index: 62;
+  background: #ffffff;
+  position: absolute;
+  left: 50%;
+  bottom: 7%;
+  transform: translateX(-50%);
+  font-weight: 1000;
+  font-size: 17px;
+  box-shadow: 4px 8px 19px -3px rgba(0,0,0,0.27);
+  transition: all 250ms;
+  overflow: hidden;
+  opacity: 0;
+  display: none;
+}
+
+#sameBtn::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  height: 100%;
+  width: 0;
+  border-radius: 25px;
+  background-color: #212121;
+  z-index: -1;
+  box-shadow: 4px 8px 19px -3px rgba(0,0,0,0.27);
+  transition: all 250ms;
+}
+
+#sameBtn:hover {
+  color: #ffffff;
+}
+
+#sameBtn:hover::before {
+  width: 100%;
+}
+
+.uiverse-button {
+  padding: 15px 25px;
+  border: unset;
+  border-radius: 15px;
+  color: #212121;
+  z-index: 62;
+  background: #e8e8e8;
+  position: absolute;
+  left: 50%;
+  bottom: 8%;
+  transform: translateX(-50%);
+  font-weight: 1000;
+  font-size: 17px;
+  box-shadow: 4px 8px 19px -3px rgba(0,0,0,0.27);
+  transition: all 250ms;
+  overflow: hidden;
+  opacity: 0;
+  display: none;
+  font-family: 'LapsusPro-Bold', sans-serif;
+}
+
+.uiverse-button::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  height: 100%;
+  width: 0;
+  border-radius: 15px;
+  background-color: #212121;
+  z-index: -1;
+  transition: all 250ms;
+}
+
+.uiverse-button:hover {
+  color: #e8e8e8;
+}
+
+.uiverse-button:hover::before {
+  width: 100%;
+}
+
+.coon-1, .coon-2, .coon-3 {
+  transition: opacity 1.2s ease-out, transform 0.8s ease-out;
+  opacity: 0;
+}
+
+.coon-1.show, .coon-2.show, .coon-3.show {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.coon-1 {
+  transition: opacity 0.5s ease-out, transform 0.5s ease-out;
+}
+.coon-2 {
+  transition: opacity 0.5s ease-out, transform 0.5s ease-out;
+}
+.coon-3 {
+  transition: opacity 0.5s ease-out, transform 0.5s ease-out;
+}
+
+#popperArea {
+  position: absolute;
+  width: 10px;
+  height: 10px;
+  bottom: 50%;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 100;
+  cursor: pointer;
+  outline: none !important; /* Добавьте эту строку */
+  -webkit-tap-highlight-color: transparent; /* Для мобильных устройств */
+  user-select: none; /* Запрещает выделение текста */
+  /* Добавьте рамку для визуализации области (можно убрать) */
+}
+
+/* Новая кнопка "Задуть!" */
+#blowBtn {
+  --primary-color: #2f80ff;
+  --secondary-color: #fff;
+  --hover-color: #111;
+ 
+  box-sizing: border-box;
+  border: 0;
+  border-radius: 35px;
+  color: var(--secondary-color);
+  padding: 1em 1.8em;
+  background: var(--primary-color);
+  display: flex;
+  transition: 0.2s background;
+  align-items: center;
+  gap: 0.6em;
+  font-weight: bold;
+  font-family: 'LapsusPro-Bold', sans-serif;
+}
+
+#blowBtn .arrow-wrapper {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+/*#blowBtn .arrow {
+  margin-top: 1px;
+  width: var(--arrow-width);
+  background: var(--primary-color);
+  height: var(--arrow-stroke);
+  position: relative;
+  transition: 0.2s;
+}
+
+#blowBtn .arrow::before {
+  content: "";
+  box-sizing: border-box;
+  position: absolute;
+  border: solid var(--secondary-color);
+  border-width: 0 var(--arrow-stroke) var(--arrow-stroke) 0;
+  display: inline-block;
+  top: -3px;
+  right: 3px;
+  transition: 0.2s;
+  padding: 3px;
+  transform: rotate(-45deg);
+}
+
+#blowBtn:hover {
+  background-color: var(--hover-color);
+}
+
+#blowBtn:hover .arrow {
+  background: var(--secondary-color);
+}
+
+#blowBtn:hover .arrow:before {
+  right: 0;
+}
+
+<!-- Добавьте этот стиль в раздел <style> -->
+<style>
+  /* Анимации для новых элементов */
+  .fade-in {
+    animation: fadeIn 0.8s ease-out forwards;
+  }
+  
+  .fade-out {
+    animation: fadeOut 0.8s ease-out forwards;
+  }
+  
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  
+  @keyframes fadeOut {
+    from { opacity: 1; transform: translateY(0); }
+    to { opacity: 0; transform: translateY(-10px); }
+  }
+  
+  /* Стиль для нового текста */
+  #questionText {
+    position: absolute;
+    top: 50px;
+    left: 50px;
+    transform: translateX(-50%);
+    width: 80vw;
+    max-width: 500px;
+    text-align: center;
+    font-family: 'LapsusPro-Bold', sans-serif;
+    font-size: 16px;
+    line-height: 1;
+    color: #303030;
+    opacity: 0;
+    display: none;
+    z-index: 61;
+  }
+
+  #noBtn {
+    padding: 15px 25px;
+    border: unset;
+    border-radius: 50px;
+    color: #212121;
+    z-index: 62;
+    background: #ffffff;
+    position: absolute;
+    left: 40%;
+    bottom: 7%;
+    transform: translateX(-50%);
+    font-weight: 1000;
+    font-size: 17px;
+    box-shadow: 4px 8px 19px -3px rgba(0,0,0,0.27);
+    transition: all 250ms;
+    overflow: hidden;
+    opacity: 0;
+    display: none;
+    font-family: 'LapsusPro-Bold', sans-serif;
+  }
+  
+  #noBtn::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    height: 100%;
+    width: 0;
+    border-radius: 50px;
+    background-color: #212121;
+    z-index: -1;
+    transition: all 250ms;
+  }
+  
+  #noBtn:hover {
+    color: #ffffff;
+  }
+  
+  #noBtn:hover::before {
+    width: 100%;
+  }
+  
+  /* Стиль для новой кнопки */
+  #thanksBtn {
+    padding: 15px 25px;
+    border: unset;
+    border-radius: 50px;
+    color: #212121;
+    z-index: 62;
+    background: #ffffff;
+    position: absolute;
+    left: 50%;
+    bottom: 7%;
+    transform: translateX(-50%);
+    font-weight: 1000;
+    font-size: 17px;
+    box-shadow: 4px 8px 19px -3px rgba(0,0,0,0.27);
+    transition: all 250ms;
+    overflow: hidden;
+    opacity: 0;
+    display: none;
+    font-family: 'LapsusPro-Bold', sans-serif;
+  }
+  
+  #thanksBtn::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    height: 100%;
+    width: 0;
+    border-radius: 50px;
+    background-color: #212121;
+    z-index: -1;
+    transition: all 250ms;
+  }
+  
+  #thanksBtn:hover {
+    color: #ffffff;
+  }
+  
+  #thanksBtn:hover::before {
+    width: 100%;
+  }
+
+/* Стили для лежащего енота */
+#lyingRaccoon {
+  transition: opacity 0.8s ease, transform 0.2s ease;
+}
+
+/* Область живота (невидимая) */
+#bellyArea {
+  -webkit-tap-highlight-color: transparent;
+  outline: none !important;
+}
+
+#yesBtn {
+    padding: 15px 25px;
+    border: unset;
+    border-radius: 50px;
+    color: #212121;
+    z-index: 62;
+    background: #ffffff;
+    position: absolute;
+    left: 50%;
+    bottom: 7%;
+    transform: translateX(-50%);
+    font-weight: 1000;
+    font-size: 17px;
+    box-shadow: 4px 8px 19px -3px rgba(0,0,0,0.27);
+    transition: all 250ms;
+    overflow: hidden;
+    opacity: 0;
+    display: none;
+    font-family: 'LapsusPro-Bold', sans-serif;
+  }
+  
+  #yesBtn::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 0;
+    height: 100%;
+    width: 0;
+    border-radius: 50px;
+    background-color: #212121;
+    z-index: -1;
+    transition: all 250ms;
+  }
+  
+  #yesBtn:hover {
+    color: #ffffff;
+  }
+  
+  #yesBtn:hover::before {
+    width: 100%;
+  }
+
+/* From Uiverse.io by catraco */ 
+.heart-container {
+  --heart-color: rgb(255, 255, 255);
+  position: relative;
+  width: 50px;
+  height: 50px;
+  transition: .3s;
+  -webkit-tap-highlight-color: transparent !important;
+  outline: none !important;
+}
+
+.heart-container .checkbox {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+  z-index: 20;
+  cursor: pointer;
+  outline: none !important;
+  box-shadow: none !important;
+  -webkit-tap-highlight-color: transparent !important;
+}
+
+.heart-container .svg-container {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.heart-container .svg-outline,
+.heart-container .svg-filled {
+  fill: var(--heart-color);
+  position: absolute;
+}
+
+.heart-container .svg-filled {
+  animation: keyframes-svg-filled 1s;
+  display: none;
+}
+
+.heart-container .svg-celebrate {
+  position: absolute;
+  animation: keyframes-svg-celebrate .5s;
+  animation-fill-mode: forwards;
+  display: none;
+  stroke: var(--heart-color);
+  fill: var(--heart-color);
+  stroke-width: 2px;
+}
+
+.heart-container .checkbox:checked~.svg-container .svg-filled {
+  display: block
+}
+
+.heart-container .checkbox:checked~.svg-container .svg-celebrate {
+  display: block
+}
+
+.heart-container input {
+  outline: none !important;
+  box-shadow: none !important;
+  -webkit-tap-highlight-color: transparent !important;
+}
+
+@keyframes keyframes-svg-filled {
+  0% {
+    transform: scale(0);
+  }
+  25% {
+    transform: scale(1.2);
+  }
+  50% {
+    transform: scale(1);
+    filter: brightness(1.5);
+  }
+}
+
+@keyframes keyframes-svg-celebrate {
+  0% {
+    transform: scale(0);
+  }
+  50% {
+    opacity: 1;
+    filter: brightness(1.5);
+  }
+  100% {
+    transform: scale(1.4);
+    opacity: 0;
+    display: none;
+  }
+}
+
+/* Стили для нового окошка */
+.card {
+  width: 190px;
+  height: 200px;
+  margin: 0 auto;
+  background-color: #F8FBFE;
+  border-radius: 8px;
+  z-index: 1000;
+  position: fixed;
+  top: 20%;
+  left: 25%;
+  transform: translate(-50%, -50%);
+  display: none;
+  box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+}
+
+.tools {
+  display: flex;
+  align-items: center;
+  padding: 9px;
+}
+
+.circle {
+  padding: 0 4px;
+}
+
+.box {
+  display: inline-block;
+  align-items: center;
+  width: 10px;
+  height: 10px;
+  padding: 1px;
+  border-radius: 50%;
+}
+
+.red { background-color: #ff605c; }
+.yellow { background-color: #ffbd44; }
+.green { background-color: #00ca4e; }
+
+.card__content {
+  padding: 20px;
+  text-align: center;
+  font-family: 'LapsusPro-Bold', sans-serif;
+  font-size: 18px;
+}
+
+.tilt-in-top-1 {
+  -webkit-animation: tilt-in-top-1 .6s cubic-bezier(.25,.46,.45,.94) both;
+  animation: tilt-in-top-1 .6s cubic-bezier(.25,.46,.45,.94) both;
+}
+
+@-webkit-keyframes tilt-in-top-1 {
+  0% { -webkit-transform: rotateY(30deg) translateY(-300px) skewY(-30deg); transform: rotateY(30deg) translateY(-300px) skewY(-30deg); opacity: 0 }
+  100% { -webkit-transform: rotateY(0deg) translateY(0) skewY(0deg); transform: rotateY(0deg) translateY(0) skewY(0deg); opacity: 1 }
+}
+@keyframes tilt-in-top-1 {
+  0% { -webkit-transform: rotateY(30deg) translateY(-300px) skewY(-30deg); transform: rotateY(30deg) translateY(-300px) skewY(-30deg); opacity: 0 }
+  100% { -webkit-transform: rotateY(0deg) translateY(0) skewY(0deg); transform: rotateY(0deg) translateY(0) skewY(0deg); opacity: 1 }
+}
+
+/* Стили для затемнения */
+/* Черный экран */
+.black-screen {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0,0,0,0);
+  z-index: 2000;
+  display: none;
+  transition: background-color 1.5s ease;
+}
+
+.black-screen.show {
+  background-color: rgba(0,0,0,0.9);
+}
+
+/* Текст на черном экране */
+.black-screen-text {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  color: white;
+  font-family: 'LapsusPro-Bold', sans-serif;
+  font-size: 24px;
+  text-align: center;
+  opacity: 0;
+  transition: opacity 0.5s ease;
+}
+
+.black-screen-text.show {
+  opacity: 1;
+}
+
+/* Контейнер видео */
+.video-container {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  z-index: 3000;
+  display: none;
+  background-color: #000;
+  opacity: 0;
+  transition: opacity 1.5s ease;
+}
+
+.video-container.show {
+  opacity: 1;
+}
+
+.video-container video {
+  width: 100%;
+  height: 100%;
+  object-fit: contain; /* Измените на 'cover' если нужно заполнение */
+}
+
+.video-container video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+  /* Добавьте эти стили в конец раздела style */
+  .delay-controls {
+    position: fixed;
+    bottom: 10px;
+    left: 10px;
+    z-index: 9999;
+    background: white;
+    padding: 10px;
+    border-radius: 5px;
+    box-shadow: 0 0 10px rgba(0,0,0,0.2);
+    display: none;
+  }
+  .delay-controls label {
+    display: block;
+    margin: 5px 0;
+  }
+  .delay-controls input {
+    width: 50px;
+  }
+
+/* Добавьте это в конец раздела style */
+#vzorviImage {
+    position: absolute;
+    width: 76px; /* регулируйте размер по необходимости */
+    top: 62%; /* регулируйте положение по вертикали */
+    left: 18%; /* регулируйте положение по горизонтали */
+    transform: translateX(-50%);
+    z-index: 70;
+    display: none;
+  }
+
+/* Стиль для текста "Лови его!" */
+#catchText {
+  position: absolute;
+  top: 40%;
+  left: 37%;
+  transform: translate(-50%, -50%);
+  font-family: 'LapsusPro-Bold', sans-serif;
+  font-size: 27px; /* Размер текста (регулируйте по необходимости) */
+  color: #ffffff;
+  text-align: center;
+  opacity: 0;
+  z-index: 65;
+  display: none;
+}
+
+.animate__tada {
+  --animate-duration: 2s; /* Длительность анимации */
+}
+
+/* Кнопка звука */
+.sound-container {
+  --color: #a5a5b0;
+  --size: 30px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  position: fixed;
+  top: 600px;
+  right: 320px;
+  cursor: pointer;
+  font-size: var(--size);
+  user-select: none;
+  fill: var(--color);
+  z-index: 1000;
+  /*background: rgba(255,255,255,0.7);*/
+  border-radius: 50%;
+  width: 40px;
+  height: 40px;
+  padding: 5px;
+}
+
+.sound-container .mute {
+  position: absolute;
+  animation: keyframes-fill .5s;
+}
+
+.sound-container .voice {
+  position: absolute;
+  display: none;
+  animation: keyframes-fill .5s;
+}
+
+.sound-container input:checked ~ .mute {
+  display: none;
+}
+
+.sound-container input:checked ~ .voice {
+  display: block;
+}
+
+.sound-container input {
+  position: absolute;
+  opacity: 0;
+  cursor: pointer;
+  height: 0;
+  width: 0;
+}
+
+@keyframes keyframes-fill {
+  0% {
+    transform: rotate(0deg) scale(0);
+    opacity: 0;
+  }
+  50% {
+    transform: rotate(-10deg) scale(1.2);
+  }
+}
+
+.sound-container input:focus {
+  outline: none !important;
+  box-shadow: none !important;
+  
+}
+
+.sound-container {
+  outline: none !important;
+}
+
+/* Убираем все следы фокуса/нажатия у кнопки звука */
+.sound-container {
+  -webkit-tap-highlight-color: transparent !important;
+  -webkit-user-select: none !important;
+  user-select: none !important;
+  outline: none !important;
+}
+
+.sound-container input {
+  -webkit-tap-highlight-color: transparent !important;
+  outline: none !important;
+  box-shadow: none !important;
+}
+
+/* Для iOS/Safari */
+.sound-container input[type="checkbox"] {
+  -webkit-appearance: none;
+  appearance: none;
+}
+
+/* Новые позиции для текстов */
+#thoughtText {
+  top: 150px; /* Поднять выше */
+  left: 140px; /* Центрировать */
+}
+
+#thoughtText2 {
+  top: 150px;
+  left: 120px;
+}
+
+#questionText {
+  top: 150px;
+  left: 120px;
+}
+
+#bellyText {
+  top: 150px;
+  left: 120px;
+}
+
+/* Добавьте это в конец раздела style */
+@-webkit-keyframes rotate-in-2-bck-ccw {
+  0% {
+    -webkit-transform: translateZ(200px) rotate(45deg);
+    transform: translateZ(200px) rotate(45deg);
+    opacity: 0;
+  }
+  100% {
+    -webkit-transform: translateZ(0) rotate(0);
+    transform: translateZ(0) rotate(0);
+    opacity: 1;
+  }
+}
+@keyframes rotate-in-2-bck-ccw {
+  0% {
+    -webkit-transform: translateZ(200px) rotate(45deg);
+    transform: translateZ(200px) rotate(45deg);
+    opacity: 0;
+  }
+  100% {
+    -webkit-transform: translateZ(0) rotate(0);
+    transform: translateZ(0) rotate(0);
+    opacity: 1;
+  }
+}
+
+.rotate-in-2-bck-ccw {
+  -webkit-animation: rotate-in-2-bck-ccw .5s cubic-bezier(.25,.46,.45,.94) both;
+  animation: rotate-in-2-bck-ccw .5s cubic-bezier(.25,.46,.45,.94) both;
+}
+
+/* Стили для вспышки и финальной страницы */
+.flash {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: white;
+  opacity: 0;
+  z-index: 5000;
+  pointer-events: none;
+}
+
+.final-page {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: white;
+  z-index: 4000;
+  display: none;
+}
+
+.final-text {
+  position: absolute;
+  top: 20%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-family: 'LapsusPro-Bold', sans-serif;
+  color: #ffffff;
+  font-size: 27px;
+  text-align: center;
+  opacity: 0;
+}
+
+/* Стиль для надписи "Какое сегодня число?" */
+.date-question {
+  position: absolute;
+  top: 47%; /* Регулируйте положение по вертикали */
+  left: 50%;
+  transform: translateX(-50%);
+  font-family: 'LapsusPro-Bold', sans-serif;
+  font-size: 24px; /* Регулируйте размер шрифта */
+  color: #ffffff;
+  text-align: center;
+  opacity: 0;
+  transition: opacity 1s ease;
+  pointer-events: none;
+}
+
+</style>
+
+
+</style>
+
+  </style>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css"/>
+
+  <script src="https://unpkg.com/typewriter-effect@latest/dist/core.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+
+
+
+  
+</head>
+
+<audio id="hissSound" src="hiss.mp3" preload="auto"></audio>
+<audio id="bgMusic" src="ukulele.mp3" loop preload="auto"></audio>
+<audio id="tremSound" src="трем.mp3" preload="auto" loop></audio>
+
+
+<body>
+
+  <!-- Кнопка звука -->
+  <label class="sound-container" tabindex="-1">
+    <input checked="checked" type="checkbox" id="soundToggle" tabindex="-1">
+    <svg viewBox="0 0 576 512" height="1em" xmlns="http://www.w3.org/2000/svg" class="mute">
+      <path d="M301.1 34.8C312.6 40 320 51.4 320 64V448c0 12.6-7.4 24-18.9 29.2s-25 3.1-34.4-5.3L131.8 352H64c-35.3 0-64-28.7-64-64V224c0-35.3 28.7-64 64-64h67.8L266.7 40.1c9.4-8.4 22.9-10.4 34.4-5.3zM425 167l55 55 55-55c9.4-9.4 24.6-9.4 33.9 0s9.4 24.6 0 33.9l-55 55 55 55c9.4 9.4 9.4 24.6 0 33.9s-24.6 9.4-33.9 0l-55-55-55 55c-9.4 9.4-24.6 9.4-33.9 0s-9.4-24.6 0-33.9l55-55-55-55c-9.4-9.4-9.4-24.6 0-33.9s24.6-9.4 33.9 0z"></path>
+    </svg>
+    <svg viewBox="0 0 448 512" height="1em" xmlns="http://www.w3.org/2000/svg" class="voice">
+      <path d="M301.1 34.8C312.6 40 320 51.4 320 64V448c0 12.6-7.4 24-18.9 29.2s-25 3.1-34.4-5.3L131.8 352H64c-35.3 0-64-28.7-64-64V224c0-35.3 28.7-64 64-64h67.8L266.7 40.1c9.4-8.4 22.9-10.4 34.4-5.3zM412.6 181.5C434.1 199.1 448 225.9 448 256s-13.9 56.9-35.4 74.5c-10.3 8.4-25.4 6.8-33.8-3.5s-6.8-25.4 3.5-33.8C393.1 284.4 400 271 400 256s-6.9-28.4-17.7-37.3c-10.3-8.4-11.8-23.5-3.5-33.8s23.5-11.8 33.8-3.5z"></path>
+    </svg>
+  </label>
+  
+  <div class="wrapper">
+    <img src="потяни@4x.png" alt="Потяни" class="pull-hint" id="pullHint">
+
+    <div class="slide-two" id="slideTwo">
+      <div class="slot-numbers">
+        <!-- День -->
+        <div class="slot-cell">
+          <input type="text" id="day" class="slot-input" placeholder="00">
+          <div class="emoji-reel" id="reel1"></div>
+          <div class="slot-mask"></div> <!-- Маска теперь ОТДЕЛЬНО -->
+        </div>
+        
+        <!-- Месяц -->
+        <div class="slot-cell">
+          <input type="text" id="month" class="slot-input" placeholder="00">
+          <div class="emoji-reel" id="reel2"></div>
+          <div class="slot-mask"></div> <!-- Маска теперь ОТДЕЛЬНО -->
+        </div>
+      </div>
+
+       <!-- Рычаг (остаётся ВНЕ slot-numbers!) -->
+    <div class="lever" id="lever"></div>
+  </div>
+  <div class="date-question" id="dateQuestion">Какое сегодня число?</div>
+
+<button class="next-button" id="nextButton" tabindex="-1">
+      что же это значит...
+      <span class="arrow-wrapper">
+        <span class="arrow"></span>
+      </span>
+    </button>  
+
+    <!-- Вторая страница -->
+    <div class="second-page" id="secondPage">
+      <img src="загрузка.png" class="loader-bar" />
+      <img src="ежик.gif" id="hedgehog" />
+      <div id="pawContainer"></div>
+      
+      <!-- ★ ВСТАВЬ ЭТО ↓↓↓ -->
+      <div class="question-text">И&nbsp;куда&nbsp;он&nbsp;бежит?</div>
+    </div>
+           
+    
+    <!-- Третья страница -->
+    <div class="third-page" id="thirdPage" style="display: none; position: absolute; top: 0; left: -4; width: 100%; height: 100%; background: white; z-index: 30; overflow: hidden;"> 
+      <img src="HB2.png" id="hbtyImage" style="
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        width: auto;
+        height: 85%;
+        max-height: 85vh;
+        object-fit: contain;
+        z-index: 10;
+        "/>
+      
+ 
+  
+  <h1 id="birthdayTitle" class="animate__animated animate__slideInDown" style="text-align: center; margin-top: 55px; color: #2f80ff; font-size: 27px; display: none;">Эээй, с Днем Рождения!</h1>
+  
+  <p id="birthdaySubtitle" class="animate__animated animate__fadeIn" style="text-align: center; margin-top: 7px; color: #2f80ff; font-size: 16px; display: none;">Пора задуть свечи!!!</p>
+
+  <button id="blowBtn" tabindex="-1" style="
+  display: none;
+  position: absolute;
+  bottom: 57px;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 17px;
+  z-index: 999;
+  transition: all 0.3s ease;
+">
+  Задуть!
+  <div class="arrow-wrapper">
+    <div class="arrow"></div>
+  </div>
+</button>
+
+
+<img src="свеча.png" id="candle" style="
+  display: none;
+  position: absolute;
+  bottom: -125px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 200px;
+  opacity: 0;
+  transition: opacity 1s ease;
+  z-index: 999;
+"/>
+
+<img src="огонь.gif" id="flame" style="
+  display: none;
+  position: absolute;
+  bottom: 111px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 100px;
+  opacity: 0;
+  transition: opacity 1s ease;
+  z-index: 999;
+"/> 
+<!-- Кнопка перехода к loading2 --> 
+<div id="next2BtnContainer" style="display:none; position: absolute; bottom: 20px; right: 40px; z-index: 999;">
+  <button id="next2Btn" tabindex="-1">
+    жми..
+    <div class="arrow-wrapper">
+      <div class="arrow"></div>
+    </div>
+  </button>
+</div>
+
+<!-- Четвёртая страница (загрузка-2) -->
+<div id="loading2" class="loading2" style="display:none; position:absolute;inset:0;background:white;z-index:40;overflow:hidden;">
+  <img src="загрузка.png" class="loader-bar" />
+
+  <!-- ёжик крупнее и бежит вправо -->
+  <div style="position:absolute;top:47%;left:-50%;" id="hedgehog2">
+    <img src="ежик.gif" style="width:120px;height:auto;" />
+    <img src="gift.png" style="position:absolute;top:17px;left:25px;width:35px;">
+  </div>
+
+  <!-- 💬 ВСТАВЬ ВОТ ЭТО ↓↓↓ -->
+  <div id="pawContainer2"></div>
+
+  <div class="question2">а&nbsp;это&nbsp;еще&nbsp;что??</div>
+</div>
+
+<!--  =====  ЧЕТВЁРТАЯ СТРАНИЦА  с енотами =================== -->
+<div id="page4" class="page4">
+  <img src="страница4.png" class="page4-bg">
+
+  <div id="catchText" class="animate__animated">Лови его!</div>
+
+  <!-- 1-я пара -->
+  <img src="куку1.png" class="coon coon-1">
+  <img src="эээй.png"  class="cloud cloud-1">
+
+  <!-- 2-я пара -->
+  <img src="куку2.png" class="coon coon-2" ;">
+  <img src="куку.png"  class="cloud cloud-2">
+
+  <!-- 3-я пара -->
+  <img src="куку3.png" class="coon coon-3 ">
+  <img src="я тут.png" class="cloud cloud-3">
+
+  <img src="енот полный1.png" id="finalRaccoon" style="
+  position: absolute;
+  bottom: 5%;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 300px;
+  opacity: 0;
+  transition: opacity 0.8s ease;
+  z-index: 60;
+  display: none;
+">
+
+<!-- Облако мысли -->
+<img src="мысль.png" id="thoughtCloud">
+
+<!-- Текст на облаке -->
+<div id="thoughtText">
+  Лааадно, привет, Стас!!!<br>
+  а у меня сегодня<br>
+  <span class="big">День Рождения!</span>
+</div>
+
+<!-- Кнопка -->
+<button id="sameBtn" class="uiverse-button">ого, у меня тоже)</button>  
+
+
+</div>
+
+<!-- Новый текст, изначально невидим -->
+<div id="thoughtText2" style="
+  position:absolute;top:140px;left:140px;transform:translateX(-50%);
+  width:80vw;max-width:500px;text-align:center;
+  font-family:'LapsusPro-Bold',sans-serif;
+  font-size:14px;line-height:1;color:#303030;
+  opacity:0;display:none;transition:opacity 1s ease;z-index:61;">
+  та&nbsp;ну&nbsp;нафик,<br>тогда&nbsp;поздравляю<br>
+  с&nbsp;таким&nbsp;великим&nbsp;<br>нашим&nbsp;днём&nbsp;рождения!
+
+</div>
+
+
+<div id="questionText" style="display:none;position:absolute;top:23%;left:-5%;transform:translateX(-50%);width:80vw;max-width:500px;text-align:center;font-family:'LapsusPro-Bold',sans-serif;font-size:16px;line-height:1;color:#303030;opacity:0;transition:opacity 1s ease;z-index:61;">А тебе уже<br>дарили что-то...?</div>
+<button id="noBtn" class="uiverse-button" style="display:none;opacity:0;transition:opacity 1s ease;">нет(</button>
+
+<!-- Новый текст для животика -->
+<div id="bellyText" style="
+  display:none;
+  position:absolute;
+  top:135px;
+  left:140px;
+  transform:translateX(-50%);
+  width:80vw;
+  max-width:500px;
+  text-align:center;
+  font-family:'LapsusPro-Bold',sans-serif;
+  font-size:13px;
+  line-height:1;
+  color:#303030;
+  opacity:0;
+  transition:opacity 1s ease;
+  z-index:61;">
+  Мне&nbsp;тоже(<br>
+  давай&nbsp;потрем&nbsp;животики,<br>
+  может&nbsp;что-то&nbsp;случится?<br>
+  только&nbsp;у&nbsp;меня&nbsp;лапки,<br>
+  я&nbsp;сам&nbsp;не&nbsp;могу,&nbsp;поможешь?
+</div>
+
+<!-- Кнопка "давай)))" -->
+<button id="yesBtn" class="uiverse-button" style="
+  display:none;
+  opacity:0;
+  transition:opacity 1s ease;
+  position:absolute;
+  left:50%;
+  bottom:7%;
+  transform:translateX(-50%);
+">давай)))</button>
+
+<!-- Кнопка сердца -->
+<div id="heartButton" class="heart-container" title="Like" style="position: absolute; top: 30px; right: 30px; display: none; opacity: 0; transition: opacity 0.5s ease; z-index: 70;">
+  <input type="checkbox" class="checkbox" id="heartCheckbox">
+  <div class="svg-container">
+      <svg viewBox="0 0 24 24" class="svg-outline" xmlns="http://www.w3.org/2000/svg">
+          <path d="M17.5,1.917a6.4,6.4,0,0,0-5.5,3.3,6.4,6.4,0,0,0-5.5-3.3A6.8,6.8,0,0,0,0,8.967c0,4.547,4.786,9.513,8.8,12.88a4.974,4.974,0,0,0,6.4,0C19.214,18.48,24,13.514,24,8.967A6.8,6.8,0,0,0,17.5,1.917Zm-3.585,18.4a2.973,2.973,0,0,1-3.83,0C4.947,16.006,2,11.87,2,8.967a4.8,4.8,0,0,1,4.5-5.05A4.8,4.8,0,0,1,11,8.967a1,1,0,0,0,2,0,4.8,4.8,0,0,1,4.5-5.05A4.8,4.8,0,0,1,22,8.967C22,11.87,19.053,16.006,13.915,20.313Z"></path>
+      </svg>
+      <svg viewBox="0 0 24 24" class="svg-filled" xmlns="http://www.w3.org/2000/svg">
+          <path d="M17.5,1.917a6.4,6.4,0,0,0-5.5,3.3,6.4,6.4,0,0,0-5.5-3.3A6.8,6.8,0,0,0,0,8.967c0,4.547,4.786,9.513,8.8,12.88a4.974,4.974,0,0,0,6.4,0C19.214,18.48,24,13.514,24,8.967A6.8,6.8,0,0,0,17.5,1.917Z"></path>
+      </svg>
+      <svg class="svg-celebrate" width="100" height="100" xmlns="http://www.w3.org/2000/svg">
+          <polygon points="10,10 20,20"></polygon>
+          <polygon points="10,50 20,50"></polygon>
+          <polygon points="20,80 30,70"></polygon>
+          <polygon points="90,10 80,20"></polygon>
+          <polygon points="90,50 80,50"></polygon>
+          <polygon points="80,80 70,70"></polygon>
+      </svg>
+  </div>
+</div>
+
+<!-- Текст "потерли" -->
+<div id="rubbedText" style="position: absolute; top: 30px; left: 30px; font-family: 'LapsusPro-Bold', sans-serif; font-size: 20px; color: #ffffff; opacity: 0; display: none; transition: opacity 0.5s ease; z-index: 70;">
+  
+</div>
+
+<script>
+  
+  document.addEventListener('DOMContentLoaded', () => {
+    // Управление фоновой музыкой
+const bgMusic = document.getElementById('bgMusic');
+const soundToggle = document.getElementById('soundToggle');
+
+// Попытка автоматического воспроизведения (с обработкой ошибок)
+document.body.addEventListener('click', function initAudio() {
+  if (bgMusic.paused) {
+    const playPromise = bgMusic.play();
+    if (playPromise !== undefined) {
+      playPromise.catch(error => {
+        soundToggle.checked = false;
+      });
+    }
+  }
+  document.body.removeEventListener('click', initAudio);
+}, { once: true });
+
+// Обработчик переключения звука
+soundToggle.addEventListener('change', function() {
+  if (this.checked) {
+    bgMusic.play();
+  } else {
+    bgMusic.pause();
+  }
+});
+    const BLACK_SCREEN_DELAY = 3000; // Задержка перед черным экраном (мс)
+const VIDEO_DELAY = 3500;        // Задержка перед видео (мс)
+    document.querySelectorAll('img').forEach(img => {
+  img.addEventListener('mousedown', e => e.preventDefault());
+});
+document.querySelectorAll('.cloud, .coon').forEach(el => {
+  el.setAttribute('tabindex', '-1');
+  el.addEventListener('mousedown', e => e.preventDefault());
+});
+    const next2Btn   = document.getElementById('next2Btn');
+    const candle     = document.getElementById('candle');
+    const flame      = document.getElementById('flame');
+    const slideTwo   = document.getElementById('slideTwo');
+    const dateQuestion = document.getElementById('dateQuestion');
+
+// Показываем надпись при появлении slideTwo
+setTimeout(() => {
+  dateQuestion.style.opacity = '1';
+}, 500); // Небольшая задержка для плавного появления
+    const pullHint   = document.getElementById('pullHint');
+    const lever      = document.getElementById('lever');
+    const dayInput = document.getElementById('day');
+    const monthInput = document.getElementById('month');
+    const reel1 = document.getElementById('reel1');
+    const reel2 = document.getElementById('reel2');
+    const nextButton = document.getElementById('nextButton');
+    const secondPage = document.getElementById('secondPage');
+    const hedgehog = document.getElementById('hedgehog');
+
+    const emojiList = [
+      'автомат@4x.png', 'джойстик@4x.png', 'еж@4x.png',
+      'жаба@4x.png', 'крыса@4x.png', 'пиво@4x.png',
+      'свин@4x.png', 'слон@4x.png'
+    ];
+
+    function fillReel(reel) {
+      reel.innerHTML = '';
+      for (let i = 0; i < 10; i++) {
+        const img = document.createElement('img');
+        img.src = emojiList[Math.floor(Math.random() * emojiList.length)];
+        img.className = 'emoji-img';
+        reel.appendChild(img);
+      }
+    }
+    
+
+    function spin() {
+      const day = dayInput.value;
+      const month = monthInput.value;
+
+      if (!day || !month) {
+        alert('Введите дату полностью');
+        return;
+      }
+
+      dayInput.style.visibility = 'hidden';
+      monthInput.style.visibility = 'hidden';
+
+      fillReel(reel1);
+      fillReel(reel2);
+      lever.classList.add('pulled');
+
+      let position = 0;
+      const interval = setInterval(() => {
+        position -= 40;
+        reel1.style.transform = `translateY(${position}px)`;
+        reel2.style.transform = `translateY(${position}px)`;
+      }, 80);
+
+      setTimeout(() => {
+        clearInterval(interval);
+
+        const isBirthday = day === '23' && month === '06';
+        reel1.innerHTML = `<img src="${isBirthday ? 'торт@4x.png' : 'автомат@4x.png'}"  class="emoji-img ${isBirthday ? 'cake-img' : ''}">`;
+        
+        reel2.innerHTML = `<img src="${isBirthday ? 'торт@4x.png' : 'автомат@4x.png'}"  class="emoji-img ${isBirthday ? 'cake-img' : ''}">`;
+        
+
+        reel1.style.transform = 'translateY(0)';
+        reel2.style.transform = 'translateY(0)';
+        lever.classList.remove('pulled');
+
+        // показать кнопку
+        if (isBirthday) {
+          nextButton.classList.add('show');
+        }
+      }, 1500);
+    }
+
+    lever.addEventListener('click', spin);
+
+    nextButton.addEventListener('click', () => {
+  // Скрываем текущий слайд
+  // Скрываем надпись перед переходом
+dateQuestion.style.opacity = '0';
+  slideTwo.style.opacity = '0';
+  slideTwo.style.pointerEvents = 'none';
+  
+  // Показываем вторую страницу
+  secondPage.style.display = 'block';
+  setTimeout(() => {
+    secondPage.classList.add('visible');
+    
+    // Анимация ёжика
+    hedgehog.style.transition = 'left 2s ease-out';
+    hedgehog.style.left = '-20%';
+
+    // Анимация следов лап
+    let count = 0;
+    const maxSteps = 16;
+    const pawInterval = setInterval(() => {
+      const r = hedgehog.getBoundingClientRect();
+      dropPaw(r.left + 7, r.top + 24);
+      count++;
+      if (count >= maxSteps) clearInterval(pawInterval);
+    }, 120);
+
+    // Через 3 секунды переходим к третьей странице
+    setTimeout(() => {
+      secondPage.style.display = 'none';
+      const thirdPage = document.getElementById('thirdPage');
+      thirdPage.style.display = 'block';
+
+      // Анимация появления изображения
+      const hbty = document.getElementById('hbtyImage');
+      hbty.style.display = 'block';
+      setTimeout(() => {
+        hbty.style.opacity = '1';
+      }, 50);
+
+      // Последовательное появление элементов
+      setTimeout(() => {
+        document.getElementById('birthdayTitle').style.display = 'block';
+      }, 600);
+
+      setTimeout(() => {
+        document.getElementById('birthdaySubtitle').style.display = 'block';
+      }, 1200);
+
+      setTimeout(() => {
+        document.getElementById('blowBtn').style.display = 'block';
+      }, 1800);
+    }, 3000);
+  }, 50);
+});
+
+
+    setTimeout(() => {
+      document.getElementById('birthdayTitle').style.display = 'block';
+    }, 600);
+
+    setTimeout(() => {
+      document.getElementById('birthdaySubtitle').style.display = 'block';
+    }, 1200);
+
+    setTimeout(() => {
+  document.getElementById('blowBtn').style.display = 'block';
+}, 1800);
+
+    setTimeout(() => {
+      document.getElementById('blowBtn').style.display = 'flex';
+    }, 1800);
+  }, 3000);
+
+
+    // Touch
+    // ↓ совет: привяжитесь не ко всему document, а только к .pull-hint или .slide-two
+
+    // ВОЗВРАТ К КЛАССИЧЕСКОМУ СВАЙПУ
+
+function openSecondSlide(){
+  slideTwo.style.transform = 'translateY(0)';
+  pullHint.style.display   = 'none';
+}
+
+// Touch-свайп
+let touchStartY = 0;
+
+document.addEventListener('touchstart', e => {
+  touchStartY = e.touches[0].clientY;
+}, { passive: true });
+
+document.addEventListener('touchmove', e => {
+  if (touchStartY && touchStartY - e.touches[0].clientY > 100) {
+    openSecondSlide();
+    touchStartY = 0;
+  }
+}, { passive: true });
+
+// Mouse-свайп
+let mouseStartY = 0;
+let dragging = false;
+
+document.addEventListener('mousedown', e => {
+  mouseStartY = e.clientY;
+  dragging = true;
+});
+
+document.addEventListener('mouseup', e => {
+  if (dragging && mouseStartY - e.clientY > 100) {
+    openSecondSlide();
+  }
+  dragging = false;
+});
+
+
+  
+    function dropPaw(x, y) {
+  const paw = document.createElement('div');
+  paw.className = 'paw';
+  paw.style.left = `${x}px`;
+  paw.style.top = `${y}px`;
+  document.getElementById('pawContainer').appendChild(paw);
+  setTimeout(() => paw.remove(), 1500);
+}
+
+document.getElementById('blowBtn').addEventListener('click', function () {
+  this.style.transition = 'opacity 1s ease';
+  this.style.opacity = 0;
+  setTimeout(() => this.style.display = 'none', 1000);
+
+
+  candle.style.display = 'block';
+  flame.style.display = 'block';
+
+  setTimeout(() => {
+    candle.style.opacity = 1;
+    flame.style.opacity = 0.8; // 👈 здесь регулируется "прозрачность"
+  }, 50);
+});
+
+// 👇 анимация исчезновения пламени при касании или клике
+document.getElementById('flame').addEventListener('click', function () {
+  this.classList.add('fade-out-on-place');
+
+  setTimeout(() => {
+    this.style.display = 'none';
+  }, 1600); // чуть больше чем длительность анимации
+});
+
+document.getElementById('flame').addEventListener('click', function () {
+  const sound = document.getElementById('hissSound');
+  sound.currentTime = 0;
+  sound.play();
+  setTimeout(() => sound.pause(), 900); // остановка через 0.9 секунды
+
+  this.classList.add('fade-out-on-place');
+
+  setTimeout(() => {
+    this.style.display = 'none';
+  }, 1600); // чуть больше, чем длительность анимации
+});
+
+/***** 1. после исчезновения пламени показываем кнопку *****\
+    (когда анимация fade-out у img#flame закончилась)
+\************************************************************/
+flame.addEventListener('animationend', () => {
+  const next2BtnBlock = document.getElementById('next2BtnContainer');
+  if (next2BtnBlock) next2BtnBlock.style.display = 'block';
+});
+
+
+/***** 2. клик по кнопке «далее..» открывает загрузку-2 *****/
+if (next2Btn) {
+  next2Btn.addEventListener('click', () => {
+    next2Btn.classList.add('fade-out');
+    
+    const l2 = document.getElementById('loading2');
+    document.getElementById('loading2').classList.add('visible');
+    l2.style.display = 'block';
+    l2.classList.add('visible');
+
+    // Скрыть свечу и пламя
+    candle.classList.add('fade-out-on-place');
+    flame.classList.add('fade-out-on-place');
+
+    setTimeout(() => {
+      candle.style.display = 'none';
+      flame.style.display = 'none';
+    }, 1600);
+
+    const h2 = document.getElementById('hedgehog2');
+    setTimeout(() => {
+      h2.style.transition = 'left 2s ease-out';
+      h2.style.left = '105%';
+      setTimeout(showPage4, 3200);
+
+      let count2 = 0;
+      const maxSteps2 = 16;
+      const interval2 = setInterval(() => {
+        const r2 = h2.getBoundingClientRect();
+        dropPaw2(r2.left + 7, r2.top + 24);
+        count2++;
+        if (count2 >= maxSteps2) clearInterval(interval2);
+      }, 120);
+
+      function dropPaw2(x, y) {
+        const paw = document.createElement('div');
+        paw.className = 'paw2';
+        paw.style.left = `${x}px`;
+        paw.style.top = `${y}px`;
+        document.getElementById('pawContainer2').appendChild(paw);
+        setTimeout(() => paw.remove(), 1500);
+      }
+    }, 1000);
+  });
+}
+
+// ======= ЕНОТЫ ========================
+const page4 = document.getElementById('page4');
+const pairs = [
+  ['coon-1', 'cloud-1'],
+  ['coon-2', 'cloud-2'],
+  ['coon-3', 'cloud-3']
+];
+
+function showPage4() {
+  page4.style.display = 'block';
+  requestAnimationFrame(() => page4.style.opacity = 1);
+  
+  // Показываем текст "Лови его!" с анимацией
+  setTimeout(() => {
+    const catchText = document.getElementById('catchText');
+    catchText.style.display = 'block';
+    catchText.classList.add('animate__tada');
+    
+    setTimeout(() => {
+      catchText.style.opacity = '1';
+      
+      // Скрываем текст через 3 секунды (регулируйте по необходимости)
+      setTimeout(() => {
+        catchText.style.opacity = '0';
+        setTimeout(() => {
+          catchText.style.display = 'none';
+        }, 600);
+      }, 3000); // Время до исчезновения (3000 мс = 3 сек)
+    }, 50);
+  }, 1500); // Задержка перед появлением текста (1500 мс = 1.5 сек)
+  
+  setTimeout(() => showPair(0), 1500);
+}
+
+function showPair(index) {
+  if (index >= pairs.length) return;
+
+  const [coonId, cloudId] = pairs[index];
+  const coon = document.querySelector('.' + coonId);
+  const cloud = document.querySelector('.' + cloudId);
+
+  // Показываем енота с анимацией
+  coon.style.display = 'block';
+  setTimeout(() => {
+    coon.classList.add('show');
+  }, 50); // небольшая задержка для корректного запуска анимации
+
+  // Показываем облако с задержкой
+  setTimeout(() => {
+    cloud.style.display = 'block';
+    requestAnimationFrame(() => cloud.style.opacity = 1);
+    cloud.addEventListener('click', () => hidePair(coon, cloud, index), { once: true });
+  }, 800);
+
+  coon.addEventListener('click', () => hidePair(coon, cloud, index), { once: true });
+}
+
+
+
+function hidePair(coon, cloud, index) {
+  // Сначала скрываем облако
+  cloud.style.opacity = 0;
+  
+  // Затем скрываем енота после небольшой задержки
+  setTimeout(() => {
+    coon.classList.remove('show');
+    
+    // После завершения анимации скрытия
+    setTimeout(() => {
+      coon.style.display = 'none';
+      cloud.style.display = 'none';
+      
+      if (index + 1 < pairs.length) {
+        showPair(index + 1);
+      } else {
+        const page4bg = document.querySelector('.page4-bg');
+        page4bg.style.transition = 'opacity 4s ease';
+page4bg.style.opacity = 0;
+
+setTimeout(() => {
+  page4bg.style.transition = 'opacity 1.2s ease'; // Увеличиваем длительность перехода
+  page4bg.style.opacity = 0;
+  
+  setTimeout(() => {
+    page4bg.src = 'страница5.png';
+    page4bg.onload = () => {
+      page4bg.style.transition = 'opacity 2.5s ease'; // Плавное появление новой картинки
+      page4bg.style.opacity = 1;
+    };
+  }, 200); // Задержка перед сменой изображения
+}, 400);
+
+        setTimeout(() => {
+          const finalRaccoon = document.getElementById('finalRaccoon');
+          finalRaccoon.style.display = 'block';
+          requestAnimationFrame(() => {
+            finalRaccoon.style.opacity = 1;
+          });
+          setTimeout(showThoughtSequence, 1000);
+        }, 800);
+      }
+    }, 1200); // соответствует длительности анимации
+  }, 300); // небольшая задержка перед скрытием енота
+}
+
+function showThoughtSequence() {
+  const cloud = document.getElementById('thoughtCloud');
+  const text = document.getElementById('thoughtText');
+  const btn = document.getElementById('sameBtn');
+
+  cloud.style.display = 'block';
+  requestAnimationFrame(() => cloud.style.opacity = 1);
+
+  setTimeout(() => {
+    text.style.display = 'block';
+    requestAnimationFrame(() => text.style.opacity = 1);
+  }, 600);
+
+  setTimeout(() => {
+    btn.style.display = 'block';
+    requestAnimationFrame(() => btn.style.opacity = 1);
+  }, 1200);
+
+  btn.addEventListener('click', () => {
+    [text, btn].forEach(el => {
+      el.style.transition = 'opacity 0.6s ease';
+      el.style.opacity = 0;
+    });
+
+    setTimeout(() => {
+      text.style.display = 'none';
+      btn.style.display = 'none';
+
+      const raccoon = document.getElementById('finalRaccoon');
+      raccoon.style.transition = 'opacity 0.6s ease';
+      raccoon.style.opacity = 0;
+
+      raccoon.addEventListener('transitionend', function swapImg() {
+        raccoon.removeEventListener('transitionend', swapImg);
+        raccoon.src = 'енот полный2.png';
+        const vzorviImage = document.getElementById('vzorviImage');
+vzorviImage.style.display = 'block';
+vzorviImage.classList.add('animate__tada');
+setTimeout(() => {
+  vzorviImage.style.opacity = '1';
+}, 50);
+        raccoon.onload = () => {
+          raccoon.style.opacity = 1;
+          
+          // Автоматический запуск конфетти
+          fireConfetti();
+          
+          // Создаем невидимую область для кликов
+          const popperArea = document.createElement('div');
+          popperArea.id = 'popperArea';
+          popperArea.style.position = 'absolute';
+          popperArea.style.width = '65px';
+          popperArea.style.height = '65px';
+          popperArea.style.bottom = '35%';
+          popperArea.style.left = '40%';
+          popperArea.style.transform = 'translateX(-50%)';
+          popperArea.style.zIndex = '100';
+          popperArea.style.cursor = 'pointer';
+          popperArea.style.outline = 'none'; // Добавьте эту строку
+popperArea.style.webkitTapHighlightColor = 'transparent'; // Для мобильных
+          
+          // Для теста можно добавить рамку (потом удалите)
+          /*popperArea.style.border = '2px dashed red';*/
+          
+          document.getElementById('page4').appendChild(popperArea);
+          
+          // Обработчик клика
+          popperArea.addEventListener('click', () => {
+            fireConfetti();
+          });
+        };
+      });
+
+      
+
+      const text2 = document.getElementById('thoughtText2');
+      text2.style.display = 'block';
+      requestAnimationFrame(() => text2.style.opacity = 1);
+
+      const thanksBtn = document.createElement('button');
+      thanksBtn.id = 'thanksBtn';
+      thanksBtn.className = 'uiverse-button';
+      thanksBtn.textContent = '- ыыы, спасибо!';
+      thanksBtn.style.borderRadius = '50px';
+      thanksBtn.style.opacity = 0;
+      thanksBtn.style.display = 'block';
+      page4.appendChild(thanksBtn);
+
+      setTimeout(() => {
+        thanksBtn.style.opacity = 1;
+      }, 50);
+
+      // Добавляем обработчик для кнопки "ыыы, спасибо и тебя с др!"
+      thanksBtn.addEventListener('click', function() {
+        // Плавно скрываем текущие элементы
+        const elementsToHide = [
+          document.getElementById('thoughtText2'),
+          thanksBtn
+        ];
+        
+        elementsToHide.forEach(el => {
+          el.style.transition = 'opacity 0.6s ease, transform 0.6s ease';
+          el.style.opacity = '0';
+        });
+        
+        // Через секунду меняем енота и показываем новые элементы
+        setTimeout(() => {
+          const raccoon = document.getElementById('finalRaccoon');
+          raccoon.style.transition = 'opacity 1s ease';
+          raccoon.style.opacity = '0';
+          
+          raccoon.addEventListener('transitionend', function() {
+            raccoon.src = 'енот полный3.png';
+            vzorviImage.style.opacity = '0';
+setTimeout(() => {
+  vzorviImage.style.display = 'none';
+  vzorviImage.classList.remove('animate__tada');
+}, 100);
+            // Удаляем область для кликов по хлопушке
+const popper = document.getElementById('popperArea');
+if (popper) popper.remove();
+
+            raccoon.onload = () => {
+              raccoon.style.opacity = '1';
+              
+              // Показываем новый текст
+              const questionText = document.getElementById('questionText');
+              questionText.style.display = 'block';
+              setTimeout(() => {
+                questionText.style.opacity = '1';
+                questionText.style.transform = 'translateY(0)';
+                
+                // Через секунду показываем новую кнопку
+                setTimeout(() => {
+                  const noBtn = document.getElementById('noBtn');
+                  noBtn.style.display = 'block';
+                  setTimeout(() => {
+                    noBtn.style.opacity = '1';
+                    noBtn.style.transform = 'translateY(0)';
+                  }, 50);
+                }, 1000);
+              }, 50);
+            };
+          });
+        }, 1000);
+      });
+
+    }, 600);
+  }, { once: true });
+}
+
+// Обработчик для кнопки "нет("
+document.getElementById('noBtn').addEventListener('click', function() {
+  // Плавно скрываем текущие элементы
+  const elementsToHide = [
+    document.getElementById('questionText'),
+    document.getElementById('noBtn')
+  ];
+  
+  elementsToHide.forEach(el => {
+    el.style.transition = 'opacity 0.6s ease';
+    el.style.opacity = '0';
+  });
+  
+  // Меняем енота плавно
+  setTimeout(() => {
+    const raccoon = document.getElementById('finalRaccoon');
+    raccoon.style.transition = 'opacity 0.8s ease';
+    raccoon.style.opacity = '0';
+    
+    raccoon.addEventListener('transitionend', function() {
+      raccoon.src = 'енот полный4.png';
+      raccoon.onload = () => {
+        raccoon.style.opacity = '1';
+        
+        // Показываем новый текст
+        setTimeout(() => {
+          const bellyText = document.getElementById('bellyText');
+          bellyText.style.display = 'block';
+          setTimeout(() => {
+            bellyText.style.opacity = '1';
+            
+            // Через секунду показываем новую кнопку
+            setTimeout(() => {
+              const yesBtn = document.getElementById('yesBtn');
+              yesBtn.style.display = 'block';
+              setTimeout(() => {
+                yesBtn.style.opacity = '1';
+              }, 50);
+            }, 1000);
+          }, 50);
+        }, 800);
+      };
+    });
+  }, 600);
+});
+
+// Обработчик для кнопки "давай)))"
+document.getElementById('yesBtn').addEventListener('click', function() {
+  // Плавно скрываем все элементы
+  const elementsToHide = [
+    document.getElementById('bellyText'),
+    document.getElementById('yesBtn'),
+    document.getElementById('thoughtCloud'),
+    document.getElementById('finalRaccoon')
+  ];
+  
+  elementsToHide.forEach(el => {
+    el.style.transition = 'opacity 0.8s ease';
+    el.style.opacity = '0';
+  });
+  
+  // После скрытия показываем лежащего енота
+  setTimeout(() => {
+    elementsToHide.forEach(el => {
+      el.style.display = 'none';
+    });
+    
+    // Создаем изображение лежащего енота
+    const lyingRaccoon = document.createElement('img');
+    lyingRaccoon.id = 'lyingRaccoon';
+    lyingRaccoon.src = 'енот лежит1.png';
+    lyingRaccoon.style.position = 'absolute';
+    lyingRaccoon.style.bottom = '5%';
+    lyingRaccoon.style.left = '50%';
+    lyingRaccoon.style.transform = 'translateX(-50%)';
+    lyingRaccoon.style.width = '300px';
+    lyingRaccoon.style.opacity = '0';
+    lyingRaccoon.style.transition = 'opacity 0.8s ease';
+    lyingRaccoon.style.zIndex = '60';
+    lyingRaccoon.style.display = 'block';
+    document.getElementById('page4').appendChild(lyingRaccoon);
+    
+    // Плавно показываем лежащего енота
+    setTimeout(() => {
+      lyingRaccoon.style.opacity = '1';
+        setTimeout(() => {
+  const ustalImage = document.getElementById('ustalImage');
+  ustalImage.style.display = 'block';
+  ustalImage.classList.add('animate__tada'); // Добавляем анимацию
+  setTimeout(() => {
+    ustalImage.style.opacity = '1';
+    
+    // Автоскрытие через 5 секунд с удалением анимации
+    setTimeout(() => {
+      ustalImage.style.opacity = '0';
+      setTimeout(() => {
+        ustalImage.style.display = 'none';
+        ustalImage.classList.remove('animate__tada'); // Удаляем анимацию
+      }, 600);
+    }, 100000);
+  }, 3000);
+}, 500);
+      // Добавьте этот код:
+setTimeout(() => {
+    const heartButton = document.getElementById('heartButton');
+    heartButton.style.display = 'block';
+    setTimeout(() => {
+        heartButton.style.opacity = '1';
+    }, 50);
+}, 500); // Задержка 0.5 секунды после появления енота
+      
+      // Создаем область живота для взаимодействия
+      const bellyArea = document.createElement('div');
+      bellyArea.id = 'bellyArea';
+      bellyArea.style.position = 'absolute';
+      bellyArea.style.width = '105px';
+      bellyArea.style.height = '65px';
+      bellyArea.style.bottom = '20%';
+      bellyArea.style.left = '50%';
+      bellyArea.style.transform = 'translateX(-50%)';
+      bellyArea.style.zIndex = '70';
+      bellyArea.style.cursor = 'pointer';
+      bellyArea.style.borderRadius = '50%';
+      /*bellyArea.style.backgroundColor = 'rgba(255,0,0,0.3)';  ← Раскомментируйте для визуализации*/
+
+      // Для теста можно раскомментировать следующую строку:
+      // bellyArea.style.backgroundColor = 'rgba(255,0,0,0.3)';
+      document.getElementById('page4').appendChild(bellyArea);
+      
+      // Обработчики для животика
+      let isTouching = false;
+      
+      function startTouching() {
+  isTouching = true;
+  lyingRaccoon.src = 'енот лежит2.png';
+  
+  // Звук трения
+  const tremSound = document.getElementById('tremSound');
+  tremSound.currentTime = 0;
+  tremSound.play().catch(e => console.log('Sound play error:', e));
+  
+  // Вибрация
+  if (navigator.vibrate) navigator.vibrate([100, 50, 100]);
+}
+
+function stopTouching() {
+  isTouching = false;
+  lyingRaccoon.src = 'енот лежит1.png';
+  document.getElementById('tremSound').pause();
+}
+
+      
+      // Для тач-устройств
+      bellyArea.addEventListener('touchstart', startTouching);
+      bellyArea.addEventListener('touchend', stopTouching);
+      bellyArea.addEventListener('touchcancel', stopTouching);
+      
+      // Для десктопов
+      bellyArea.addEventListener('mousedown', startTouching);
+      bellyArea.addEventListener('mouseup', stopTouching);
+      bellyArea.addEventListener('mouseleave', stopTouching);
+    }, 50);
+  }, 800);
+});
+
+// Функция для запуска конфетти
+function fireConfetti() {
+  const count = 200;
+  const defaults = {
+    origin: { y: 0.7 }
+  };
+
+  function fire(particleRatio, opts) {
+    confetti({
+      ...defaults,
+      ...opts,
+      particleCount: Math.floor(count * particleRatio)
+    });
+  }
+
+  fire(0.25, {
+    spread: 26,
+    startVelocity: 55,
+  });
+  fire(0.2, {
+    spread: 60,
+  });
+  fire(0.35, {
+    spread: 100,
+    decay: 0.91,
+    scalar: 0.8
+  });
+  fire(0.1, {
+    spread: 120,
+    startVelocity: 25,
+    decay: 0.92,
+    scalar: 1.2
+  });
+  fire(0.1, {
+    spread: 120,
+    startVelocity: 45,
+  });
+}
+
+
+function swapBackground(newSrc) {
+  const img = new Image();
+  img.src = newSrc;
+  img.onload = () => {
+    page4bg.src = newSrc;
+    page4bg.style.opacity = 1;          // делаем видимым после полной загрузки
+  };
+  page4bg.style.opacity = 0;            // прячем текущий фон
+}
+
+// Обработчик клика по сердцу
+document.getElementById('heartCheckbox')?.addEventListener('change', function() {
+  if (this.checked) {
+    const rubbedText = document.getElementById('rubbedText');
+    rubbedText.style.display = 'block';
+    setTimeout(() => {
+      rubbedText.style.opacity = '1';
+      
+      setTimeout(() => {
+        rubbedText.style.opacity = '0';
+        setTimeout(() => {
+          rubbedText.style.display = 'none';
+          
+          // Показываем окошко через 0.5 секунды
+          setTimeout(showMessageWindow, 500);
+        }, 500);
+      }, 2000);
+    }, 50);
+  }
+});
+
+// Добавьте эти переменные в начало скрипта
+/*const messageCard = document.getElementById('messageCard');
+const cardContent = document.getElementById('cardContent');
+const blackScreen = document.getElementById('blackScreen');
+const blackScreenText = document.getElementById('blackScreenText');
+const videoContainer = document.getElementById('videoContainer');
+const birthdayVideo = document.getElementById('birthdayVideo');*/
+
+// Функция для показа окошка
+// Функция для показа окошка (исправленная версия)
+/* Модифицированная функция showMessageWindow*/
+function showMessageWindow() {
+  // 1. Сначала показываем окошко
+  const messageCard = document.getElementById('messageCard');
+  const cardContent = document.getElementById('cardContent');
+  
+  messageCard.style.display = 'block';
+  messageCard.classList.add('tilt-in-top-1');
+  
+  // Очищаем предыдущий текст
+  cardContent.innerHTML = '';
+  
+  // Анимация печати текста в окошке
+  new Typewriter(cardContent, {
+    loop: false,
+    delay: 50,
+    cursor: ''
+  })
+  .typeString('Ой, кажется<br>кто-то пришел...')
+  .callFunction(() => {
+    // 2. Через 7 секунд скрываем окошко и показываем черный экран
+    setTimeout(() => {
+      messageCard.style.display = 'none';
+      
+      // Создаем черный экран (если еще не создан)
+      let blackScreen = document.getElementById('blackScreen');
+      if (!blackScreen) {
+        blackScreen = document.createElement('div');
+        blackScreen.id = 'blackScreen';
+        blackScreen.className = 'black-screen';
+        document.body.appendChild(blackScreen);
+        
+        // Создаем текст для черного экрана
+        const blackScreenText = document.createElement('div');
+        blackScreenText.id = 'blackScreenText';
+        blackScreenText.className = 'black-screen-text';
+        blackScreen.appendChild(blackScreenText);
+      }
+
+      // Показываем черный экран
+      blackScreen.style.display = 'block';
+      setTimeout(() => {
+        blackScreen.classList.add('show');
+        
+        // Печатаем текст на черном экране
+        const blackScreenText = document.getElementById('blackScreenText');
+        blackScreenText.innerHTML = '';
+        blackScreenText.style.opacity = '1';
+        
+        new Typewriter(blackScreenText, {
+          loop: false,
+          delay: 50,
+          cursor: ''
+        })
+        .typeString('Так вот куда он бежал...')
+        .callFunction(() => {
+          // 3. Через 2 секунды показываем видео
+          setTimeout(showVideo, 2300);
+        })
+        .start();
+      }, 50);
+    }, 2800); // 7 секунд задержки перед затемнением
+  })
+  .start();
+}
+
+function showVideo() {
+  const videoContainer = document.getElementById('videoContainer');
+  const video = document.getElementById('birthdayVideo');
+  
+  // Убираем loop с видео
+  video.loop = false;
+  
+  // Показываем контейнер
+  videoContainer.style.display = 'block';
+  
+  // Даем небольшой таймаут перед анимацией для стабильности
+  setTimeout(() => {
+    videoContainer.classList.add('show');
+  }, 50);
+  
+  // Обработчик окончания видео
+  video.addEventListener('ended', function() {
+    // Вспышка
+    const flash = document.getElementById('flash');
+    flash.style.transition = 'opacity 0.3s ease';
+    flash.style.opacity = '1';
+    
+    // Быстро скрываем вспышку и показываем финальную страницу
+    setTimeout(() => {
+      flash.style.opacity = '0';
+      
+      const finalPage = document.getElementById('finalPage');
+      finalPage.style.display = 'block';
+      
+      const finalBg = document.getElementById('finalBg');
+      setTimeout(() => {
+        finalBg.style.opacity = '1';
+        
+        // Через 1 секунду показываем "конец.png"
+        setTimeout(() => {
+          const finalImage = document.getElementById('finalImage');
+          finalImage.style.display = 'block';
+          
+          // Еще через 1 секунду печатаем текст
+          setTimeout(() => {
+            const finalText = document.getElementById('finalText');
+            finalText.style.opacity = '1';
+            
+            new Typewriter(finalText, {
+              loop: false,
+              delay: 50,
+              cursor: ''
+            })
+            .typeString('Твоя очередь получать подарок!')
+            .start();
+          }, 1000);
+        }, 1000);
+      }, 50);
+    }, 300); // Длительность вспышки
+  });
+  
+  // Попытка воспроизведения с обработкой ошибок
+  const playPromise = video.play();
+  
+  if (playPromise !== undefined) {
+    playPromise.catch(e => {
+      // Если автовоспроизведение запрещено, добавляем кнопку
+      const playButton = document.createElement('button');
+      playButton.textContent = 'Нажмите для просмотра';
+      playButton.style.position = 'absolute';
+      playButton.style.top = '50%';
+      playButton.style.left = '50%';
+      playButton.style.transform = 'translate(-50%, -50%)';
+      playButton.style.zIndex = '100';
+      playButton.addEventListener('click', () => {
+        video.play();
+        playButton.remove();
+      });
+      videoContainer.appendChild(playButton);
+    });
+  }
+}
+
+
+
+ // Добавьте этот код в конец скрипта
+ document.addEventListener('keydown', function(e) {
+    if (e.key === 'd' && e.ctrlKey) {
+      document.getElementById('delayControls').style.display = 
+        document.getElementById('delayControls').style.display === 'block' ? 'none' : 'block';
+    }
+  });
+
+</script>
+<script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+
+<!-- Окошко с сообщением -->
+<div class="card" id="messageCard" style="display: none;">
+  <div class="tools">
+    <div class="circle">
+      <span class="red box"></span>
+    </div>
+    <div class="circle">
+      <span class="yellow box"></span>
+    </div>
+    <div class="circle">
+      <span class="green box"></span>
+    </div>
+  </div>
+  <div class="card__content" id="cardContent"></div>
+</div>
+
+<!-- Черный экран -->
+<div class="black-screen" id="blackScreen" style="display: none;">
+  <div class="black-screen-text" id="blackScreenText"></div>
+</div>
+
+<!-- Видео -->
+<div class="video-container" id="videoContainer" style="display: none;">
+  <video id="birthdayVideo" autoplay muted playsinline webkit-playsinline preload="auto">
+    <source src="с др.MOV" type="video/mp4">
+    Ваш браузер не поддерживает видео тег.
+  </video>
+</div>
+
+<div class="black-screen" id="blackScreen">
+  <div class="black-screen-text" id="blackScreenText"></div>
+</div>
+
+<img src="взорви.png" id="vzorviImage" class="animate__animated">
+
+<img src="устал.png" id="ustalImage" class="animate__animated" style="
+  position: absolute;
+  top: 43px;
+  right: 95px;
+  width: 82px;
+  opacity: 0;
+  transition: opacity 0.6s ease;
+  z-index: 70;
+  display: none;
+">
+
+<!-- Добавьте это перед </body> -->
+<div class="flash" id="flash"></div>
+<div class="final-page" id="finalPage">
+  <img src="страница7.png" id="finalBg" style="width:100%;height:100%;object-fit:cover;opacity:0;transition:opacity 1s ease;">
+  <img src="конец.png" id="finalImage" class="rotate-in-2-bck-ccw" style="position:absolute;top:160px;left:10px;transform:translate(-50%,-50%);width:100%;max-width:600px;display:none;">
+  <div id="finalText" class="final-text"></div>
+</div>
+
+</body>
+</html>
